@@ -14,6 +14,7 @@
    - Data models and types
    - API service layer
    - Offline data sync strategy
+   - AI service integration layer
 
 ### Phase 2: Core Features
 1. **Memories Module**
@@ -41,6 +42,42 @@
    - Story generation
    - Theme customization
    - Story management
+
+### Phase 3: AI-Powered Features
+1. **AI Development Milestone Analyzer**
+   - Photo/video analysis system
+   - Milestone detection algorithms
+   - Progress tracking
+   - Activity recommendations
+   - Early detection system
+
+2. **Smart Health Pattern Recognition**
+   - Health data analysis system
+   - Pattern detection algorithms
+   - Predictive health modeling
+   - Preventive recommendations
+   - Health report generation
+
+3. **AI Sleep Pattern Optimizer**
+   - Sleep tracking system
+   - Routine analysis
+   - Regression prediction
+   - Personalized recommendations
+   - Sleep quality reporting
+
+4. **Predictive Schedule Assistant**
+   - Routine learning system
+   - Activity timing optimization
+   - Age-based adjustments
+   - Calendar integration
+   - Pattern adaptation
+
+5. **Growth Analytics & Predictions**
+   - Historical data analysis
+   - Growth projection modeling
+   - Nutrition recommendations
+   - Milestone prediction
+   - Comparative analytics
 
 ### Phase 3: Enhancement
 1. **Performance Optimization**
@@ -103,7 +140,10 @@ health_records (
   record_type text,
   date timestamptz,
   value jsonb,
-  notes text
+  notes text,
+  ai_analysis jsonb,
+  patterns jsonb,
+  recommendations jsonb
 )
 ```
 
@@ -117,6 +157,46 @@ time_capsules (
   media_urls text[],
   delivery_date timestamptz,
   is_delivered boolean
+)
+
+### Development Records Table
+```sql
+development_records (
+  id uuid primary key,
+  child_id uuid references children,
+  record_date timestamptz,
+  milestone_type text,
+  milestone_data jsonb,
+  media_urls text[],
+  ai_analysis jsonb,
+  recommendations jsonb
+)
+```
+
+### Sleep Records Table
+```sql
+sleep_records (
+  id uuid primary key,
+  child_id uuid references children,
+  sleep_start timestamptz,
+  sleep_end timestamptz,
+  quality_metrics jsonb,
+  routine_data jsonb,
+  ai_analysis jsonb,
+  recommendations jsonb
+)
+```
+
+### Growth Predictions Table
+```sql
+growth_predictions (
+  id uuid primary key,
+  child_id uuid references children,
+  prediction_date timestamptz,
+  prediction_type text,
+  predicted_values jsonb,
+  confidence_metrics jsonb,
+  factors jsonb
 )
 ```
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { mockChildren, mockMemories, mockHealthRecords, mockMedications, mockStories, mockTimeCapsules, mockUpcomingEvents } from './mockData';
+import { supabase } from './supabase';
 
 interface Child {
   id: string;
@@ -8,10 +9,10 @@ interface Child {
   avatarUrl?: string;
 }
 
-interface Memory {
+export interface Memory {
   id: string;
   childId: string;
-  type: 'text' | 'photo' | 'video' | 'voice';
+  type: 'text' | 'photo' | 'video' | 'voice' | string;
   title: string;
   content?: string;
   mediaUrl?: string;
@@ -20,10 +21,10 @@ interface Memory {
   createdAt: string;
 }
 
-interface HealthRecord {
+export interface HealthRecord {
   id: string;
   childId: string;
-  type: 'checkup' | 'vaccination' | 'measurement' | 'symptom';
+  type: 'checkup' | 'vaccination' | 'measurement' | 'symptom' | string;
   date: string;
   title: string;
   notes?: string;
@@ -53,10 +54,10 @@ interface Story {
   illustrations: string[];
 }
 
-interface TimeCapsule {
+export interface TimeCapsule {
   id: string;
   childId: string;
-  type: 'text' | 'photo' | 'video' | 'voice';
+  type: 'text' | 'photo' | 'video' | 'voice' | string;
   title: string;
   content?: string;
   mediaUrl?: string;
@@ -103,7 +104,8 @@ interface AppState {
   addMemory: (memory: Omit<Memory, 'id' | 'createdAt'>) => Promise<void>;
   addHealthRecord: (record: Omit<HealthRecord, 'id'>) => Promise<void>;
   addStory: (story: Omit<Story, 'id'>) => Promise<void>;
-  addTimeCapsule: (capsule: Omit<TimeCapsule, 'id'>) => Promise<void>;
+  addTimeCapsule: (capsule: Omit<TimeCapsule, 'id'>) => Promise<void>
+  signOut: () => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -223,5 +225,29 @@ export const useStore = create<AppState>((set, get) => ({
       timeCapsules: [newCapsule, ...state.timeCapsules],
       isLoading: false,
     }));
+  },
+
+  signOut: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      await supabase.auth.signOut();
+      set({
+        user: null,
+        children: [],
+        selectedChild: null,
+        memories: [],
+        healthRecords: [],
+        medications: [],
+        stories: [],
+        timeCapsules: [],
+        upcomingEvents: [],
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      set({ error: 'Failed to sign out', isLoading: false });
+      throw error;
+    }
   },
 }));

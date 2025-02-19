@@ -4,11 +4,19 @@ A comprehensive mobile application designed to help parents document, track, and
 
 ## Features
 
+### Core Features
 - **Memories**: Capture and organize precious moments with photos, videos, and stories
 - **Health Tracking**: Monitor growth, vaccinations, and development milestones
 - **Time Capsule**: Create future messages and memories for your children
 - **AI Stories**: Generate personalized stories based on your family memories
 - **Multi-child Support**: Manage profiles and memories for multiple children
+
+### AI-Powered Smart Features
+- **Development Milestone Analyzer**: AI-powered analysis of your child's developmental progress
+- **Smart Health Pattern Recognition**: Identify health patterns and provide preventive insights
+- **Sleep Pattern Optimizer**: Analyze and optimize sleep routines with AI
+- **Predictive Schedule Assistant**: AI-powered schedule optimization for your family
+- **Growth Analytics & Predictions**: Smart growth tracking and predictions
 
 ## Tech Stack
 

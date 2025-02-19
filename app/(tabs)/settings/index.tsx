@@ -1,10 +1,24 @@
-import { View, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Pressable, Switch, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../../components/Text';
 import { Card } from '../../../components/Card';
+import { SettingsSection } from '../../../components/settings/SettingsSection';
 import { useStore } from '../../../lib/store';
+import { ChildrenSection, Child } from '../../../components/settings/ChildrenSection';
+import { ChildModal } from '../../../components/settings/ChildModal';
+import { supabase } from '../../../lib/supabase';
+import { LanguageModal } from '../../../components/settings/LanguageModal';
+import { PrivacyModal } from '../../../components/settings/PrivacyModal';
+import { SecurityModal } from '../../../components/settings/SecurityModal';
+import { DataStorageModal } from '../../../components/settings/DataStorageModal';
+import { SubscriptionModal } from '../../../components/settings/SubscriptionModal';
+import { AboutModal } from '../../../components/settings/AboutModal';
+import { ProfileModal } from '../../../components/settings/ProfileModal';
+
 
 const SECTIONS = [
   {
@@ -42,86 +56,273 @@ const SECTIONS = [
 ];
 
 export default function SettingsScreen() {
-  const { user, children } = useStore();
+  const router = useRouter();
+  const { user, signOut } = useStore();
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selectedChild, setSelectedChild] = useState<Child | undefined>();
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showDataStorageModal, setShowDataStorageModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  
+  const [securitySettings, setSecuritySettings] = useState({
+    biometricEnabled: false,
+    twoFactorEnabled: false,
+    appLockEnabled: false,
+    screenCaptureEnabled: true,
+  });
+
+  const [privacySettings, setPrivacySettings] = useState({
+    shareData: true,
+    analytics: true,
+    personalization: true,
+    thirdParty: false,
+  });
+
+  // Fetch children on mount
+  useEffect(() => {
+    if (user) {
+      fetchChildren();
+    }
+  }, [user]);
+
+  const fetchChildren = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('children')
+        .select('*')
+        .eq('parent_id', user?.id)
+        .order('name');
+
+      if (error) throw error;
+      setChildren(data || []);
+    } catch (error) {
+      console.error('Error fetching children:', error);
+      Alert.alert('Error', 'Failed to fetch children');
+    }
+  };
+
+  const handleAddChild = useCallback(() => {
+    setSelectedChild(undefined);
+    setShowChildModal(true);
+  }, []);
+
+  const handleEditChild = useCallback((child: Child) => {
+    setSelectedChild(child);
+    setShowChildModal(true);
+  }, []);
+
+  const handleSaveChild = async (childData: Omit<Child, 'id' | 'parent_id'>) => {
+    if (!user) return;
+
+    try {
+      if (selectedChild) {
+        // Update existing child
+        const { error } = await supabase
+          .from('children')
+          .update(childData)
+          .eq('id', selectedChild.id);
+
+        if (error) throw error;
+      } else {
+        // Add new child
+        const { error } = await supabase
+          .from('children')
+          .insert([{ ...childData, parent_id: user.id }]);
+
+        if (error) throw error;
+      }
+
+      await fetchChildren();
+    } catch (error) {
+      console.error('Error saving child:', error);
+      throw error;
+    }
+  };
+  
+  const handleSettingPress = async (id: string) => {
+    switch (id) {
+      case 'profile':
+        console.log('Opening profile modal...');
+        setShowProfileModal(true);
+        break;
+      case 'children':
+        handleAddChild();
+        break;
+      case 'subscription':
+        setShowSubscriptionModal(true);
+        break;
+      case 'notifications':
+        setNotificationsEnabled(!notificationsEnabled);
+        break;
+      case 'appearance':
+        setDarkMode(!darkMode);
+        break;
+      case 'language':
+        setShowLanguageModal(true);
+        break;
+      case 'privacy':
+        setShowPrivacyModal(true);
+        break;
+      case 'security':
+        setShowSecurityModal(true);
+        break;
+      case 'data':
+        setShowDataStorageModal(true);
+        break;
+      case 'help':
+        Alert.alert('Help Center', 'Contact us at support@parentapp.com');
+        break;
+      case 'feedback':
+        Alert.alert('Feedback', 'Send your feedback to feedback@parentapp.com');
+        break;
+      case 'about':
+        console.log('Opening about modal...');
+        setShowAboutModal(true);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out');
+    }
+  };
+
+  console.log('Current modal states:', {
+    profile: showProfileModal,
+    about: showAboutModal
+  });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
-      </View>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Settings</Text>
+        </View>
 
       {/* User Profile Card */}
       <Card style={styles.profileCard}>
         <View style={styles.profileHeader}>
           <Image
-            source="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop"
+            source={user?.user_metadata?.avatar_url || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
             style={styles.avatar}
             contentFit="cover"
             transition={1000}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Sarah Johnson</Text>
-            <Text style={styles.profileEmail}>sarah.j@example.com</Text>
+            <Text style={styles.profileName}>{user?.user_metadata?.full_name || 'User'}</Text>
+            <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
-          <Pressable style={styles.editButton}>
+          <Pressable 
+            style={styles.editButton}
+            onPress={() => handleSettingPress('profile')}>
             <Ionicons name="pencil" size={20} color="#7c3aed" />
           </Pressable>
         </View>
 
-        <View style={styles.children}>
-          <Text style={styles.childrenTitle}>Children</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.childrenList}>
-            {children.map((child) => (
-              <View key={child.id} style={styles.childCard}>
-                <Image
-                  source={child.avatarUrl}
-                  style={styles.childAvatar}
-                  contentFit="cover"
-                  transition={1000}
-                />
-                <Text style={styles.childName}>{child.name}</Text>
-              </View>
-            ))}
-            <Pressable style={styles.addChildCard}>
-              <Ionicons name="add" size={24} color="#7c3aed" />
-              <Text style={styles.addChildText}>Add Child</Text>
-            </Pressable>
-          </ScrollView>
-        </View>
+        <ChildrenSection
+          children={children}
+          onAddChild={handleAddChild}
+          onEditChild={handleEditChild}
+        />
       </Card>
 
       {/* Settings Sections */}
       {SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <Card style={styles.sectionCard}>
-            {section.items.map((item, index) => (
-              <Pressable
-                key={item.id}
-                style={[
-                  styles.settingItem,
-                  index < section.items.length - 1 && styles.settingItemBorder,
-                ]}>
-                <View style={styles.settingIcon}>
-                  <Ionicons name={item.icon as any} size={20} color="#7c3aed" />
-                </View>
-                <Text style={styles.settingLabel}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-              </Pressable>
-            ))}
-          </Card>
-        </View>
+        <SettingsSection
+          key={section.title}
+          title={section.title}
+          items={section.items}
+          onItemPress={handleSettingPress}
+          toggleValues={{
+            notifications: notificationsEnabled,
+            appearance: darkMode,
+          }}
+        />
       ))}
 
       {/* Sign Out Button */}
-      <Pressable style={styles.signOutButton}>
+      <Pressable style={styles.signOutButton} onPress={signOut}>
         <Ionicons name="log-out" size={20} color="#ef4444" />
         <Text style={styles.signOutText}>Sign Out</Text>
       </Pressable>
-    </ScrollView>
+
+      {/* Child Management Modal */}
+      <ChildModal
+        visible={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        onSave={handleSaveChild}
+        child={selectedChild}
+      />
+
+      {/* Language Selection Modal */}
+      <LanguageModal
+        visible={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+        onSelect={setLanguage}
+        selectedLanguage={language}
+      />
+
+      {/* Privacy Settings Modal */}
+      <PrivacyModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onSave={setPrivacySettings}
+        initialSettings={privacySettings}
+      />
+      <ChildModal
+        visible={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        onSave={handleSaveChild}
+        child={selectedChild}
+      />
+
+      {/* Security Modal */}
+      <SecurityModal
+        visible={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        onSave={setSecuritySettings}
+        initialSettings={securitySettings}
+      />
+
+      {/* Data & Storage Modal */}
+      <DataStorageModal
+        visible={showDataStorageModal}
+        onClose={() => setShowDataStorageModal(false)}
+      />
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        currentPlan="free"
+      />
+      </ScrollView>
+      
+      {/* Modals */}
+      <AboutModal
+        visible={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+      />
+      <ProfileModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
+    </View>
   );
 }
 

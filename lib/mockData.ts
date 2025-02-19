@@ -19,7 +19,7 @@ export const mockMemories = [
   {
     id: '1',
     childId: '1',
-    type: 'photo',
+    type: 'photo' as const,
     title: 'First Steps!',
     content: 'Emma took her first steps today! She was so excited and proud of herself.',
     mediaUrl: 'https://images.unsplash.com/photo-1588815154768-e9fab0a8a900?q=80&w=800&auto=format&fit=crop',
@@ -29,7 +29,7 @@ export const mockMemories = [
   {
     id: '2',
     childId: '1',
-    type: 'photo',
+    type: 'photo' as const,
     title: 'Park Adventures',
     content: 'A beautiful day at the park. Emma loved the swings!',
     mediaUrl: 'https://images.unsplash.com/photo-1597248374161-426f0d6d2fc9?q=80&w=800&auto=format&fit=crop',
@@ -39,7 +39,7 @@ export const mockMemories = [
   {
     id: '3',
     childId: '1',
-    type: 'photo',
+    type: 'photo' as const,
     title: 'Beach Day',
     content: 'First time at the beach! Emma was fascinated by the waves.',
     mediaUrl: 'https://images.unsplash.com/photo-1602537693516-bb0ac0a4616a?q=80&w=800&auto=format&fit=crop',
@@ -52,7 +52,7 @@ export const mockHealthRecords = [
   {
     id: '1',
     childId: '1',
-    type: 'checkup',
+    type: 'checkup' as const,
     date: subMonths(new Date(), 1).toISOString(),
     title: 'Regular Checkup',
     notes: 'All measurements within normal range',
@@ -62,7 +62,7 @@ export const mockHealthRecords = [
   {
     id: '2',
     childId: '1',
-    type: 'vaccination',
+    type: 'vaccination' as const,
     date: subMonths(new Date(), 2).toISOString(),
     title: 'MMR Vaccine',
     notes: 'First dose completed',
@@ -123,7 +123,7 @@ export const mockTimeCapsules = [
   {
     id: '2',
     childId: '1',
-    type: 'photo',
+    type: 'photo' as const,
     title: 'Your First Year Album',
     content: 'A collection of precious moments from your first year of life.',
     mediaUrl: 'https://images.unsplash.com/photo-1596973706786-c88b3ee54c23?q=80&w=800&auto=format&fit=crop',
@@ -144,7 +144,7 @@ export const mockUpcomingEvents = [
     childId: '1',
     title: '12-Month Vaccinations',
     date: addDays(new Date(), 7).toISOString(),
-    type: 'vaccination',
+    type: 'vaccination' as const,
   },
 ];
 

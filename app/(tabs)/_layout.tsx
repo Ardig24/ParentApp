@@ -1,8 +1,24 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useAuth } from '../../lib/auth';
 
 export default function TabLayout() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      // If not authenticated, redirect to sign in
+      router.replace('/sign-in');
+    }
+  }, [user, loading]);
+
+  if (loading) {
+    return null; // or a loading spinner
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -45,6 +61,7 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="ai-stories"
         options={{
