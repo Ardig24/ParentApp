@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { mockChildren, mockMemories, mockHealthRecords, mockMedications, mockStories, mockTimeCapsules, mockUpcomingEvents } from './mockData';
 import { supabase } from './supabase';
 
-interface Child {
+export interface Child {
   id: string;
   name: string;
   birthDate: string;
@@ -31,6 +31,8 @@ export interface HealthRecord {
   height?: number;
   weight?: number;
   temperature?: number;
+  data: Record<string, any>;
+  createdAt: string;
 }
 
 export interface Medication {
@@ -104,9 +106,14 @@ interface AppState {
   fetchTimeCapsules: (childId: string) => Promise<void>;
   fetchUpcomingEvents: (childId: string) => Promise<void>;
   addMemory: (memory: Omit<Memory, 'id' | 'createdAt'>) => Promise<void>;
-  addHealthRecord: (record: Omit<HealthRecord, 'id'>) => Promise<void>;
+  addHealthRecord: (record: Omit<HealthRecord, 'id' | 'createdAt'>) => Promise<void>;
   addStory: (story: Omit<Story, 'id'>) => Promise<void>;
-  addTimeCapsule: (capsule: Omit<TimeCapsule, 'id'>) => Promise<void>
+  addTimeCapsule: (capsule: Omit<TimeCapsule, 'id'>) => Promise<void>;
+  addMedication: (medication: Omit<Medication, 'id' | 'active' | 'reminders'>) => Promise<void>;
+  updateMedication: (updatedMed: Medication) => Promise<void>;
+  completeMedication: (id: string) => Promise<void>;
+  deleteMedication: (id: string) => Promise<void>;
+  deleteHealthRecord: (id: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -121,8 +128,6 @@ export const useStore = create<AppState>((set, get) => ({
   timeCapsules: mockTimeCapsules,
   upcomingEvents: mockUpcomingEvents,
   isLoading: false,
-  active: true,
-  reminders: true,
   error: null,
 
   setUser: (user) => set({ user }),
@@ -153,7 +158,8 @@ export const useStore = create<AppState>((set, get) => ({
   fetchHealthRecords: async (childId: string) => {
     set({ isLoading: true, error: null });
     await new Promise(resolve => setTimeout(resolve, 500));
-    const filtered = mockHealthRecords.filter(r => r.childId === childId);
+    const { healthRecords } = get();
+    const filtered = healthRecords.filter(r => r.childId === childId);
     set({ healthRecords: filtered, isLoading: false });
   },
 
@@ -198,6 +204,7 @@ export const useStore = create<AppState>((set, get) => ({
     const newRecord = {
       ...record,
       id: Math.random().toString(),
+      createdAt: new Date().toISOString(),
     };
     set(state => ({
       healthRecords: [newRecord, ...state.healthRecords],
@@ -231,6 +238,61 @@ export const useStore = create<AppState>((set, get) => ({
     }));
   },
 
+  addMedication: async (medication) => {
+    set({ isLoading: true, error: null });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const newMedication = {
+      ...medication,
+      id: Math.random().toString(),
+      active: true,
+      reminders: false
+    };
+    set(state => ({
+      medications: [newMedication, ...state.medications],
+      isLoading: false
+    }));
+  },
+
+  updateMedication: async (updatedMed) => {
+    set({ isLoading: true, error: null });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    set(state => ({
+      medications: state.medications.map(med => 
+        med.id === updatedMed.id ? updatedMed : med
+      ),
+      isLoading: false
+    }));
+  },
+
+  completeMedication: async (id) => {
+    set({ isLoading: true, error: null });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    set(state => ({
+      medications: state.medications.map(med => 
+        med.id === id ? { ...med, active: false } : med
+      ),
+      isLoading: false
+    }));
+  },
+
+  deleteMedication: async (id) => {
+    set({ isLoading: true, error: null });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    set(state => ({
+      medications: state.medications.filter(med => med.id !== id),
+      isLoading: false
+    }));
+  },
+
+  deleteHealthRecord: async (id) => {
+    set({ isLoading: true, error: null });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    set(state => ({
+      healthRecords: state.healthRecords.filter(record => record.id !== id),
+      isLoading: false
+    }));
+  },
+
   signOut: async () => {
     try {
       set({ isLoading: true, error: null });
@@ -240,7 +302,7 @@ export const useStore = create<AppState>((set, get) => ({
         children: [],
         selectedChild: null,
         memories: [],
-        healthRecords: [],
+        healthRecords: mockHealthRecords,
         medications: [],
         stories: [],
         timeCapsules: [],

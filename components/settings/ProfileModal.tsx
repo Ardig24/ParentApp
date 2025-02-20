@@ -25,8 +25,8 @@ export function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const handleAvatarPress = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        mediaTypes: ImagePicker.MediaTypeOptions.images,
+        allowsEditing: false,
         aspect: [1, 1],
         quality: 0.8,
       });

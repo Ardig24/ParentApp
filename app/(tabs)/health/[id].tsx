@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,8 +8,20 @@ import { Card } from '../../../components/Card';
 import { useStore } from '../../../lib/store';
 
 export default function HealthRecordScreen() {
-  const { id } = useLocalSearchParams();
-  const { healthRecords, deleteHealthRecord } = useStore();
+  const params = useLocalSearchParams();
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
+  const { healthRecords, deleteHealthRecord, selectedChild, fetchHealthRecords } = useStore();
+
+  useEffect(() => {
+    if (selectedChild) {
+      fetchHealthRecords(selectedChild.id);
+    }
+  }, [selectedChild]);
+
+  console.log('Debug - params:', params);
+  console.log('Debug - id:', id);
+  console.log('Debug - healthRecords:', healthRecords);
+  console.log('Debug - selectedChild:', selectedChild);
   const record = healthRecords.find(r => r.id === id);
 
   if (!record) {
@@ -21,8 +34,10 @@ export default function HealthRecordScreen() {
 
   const handleDelete = async () => {
     try {
-      await deleteHealthRecord(record.id);
-      router.back();
+      if (confirm('Are you sure you want to delete this record?')) {
+        await deleteHealthRecord(record.id);
+        router.back();
+      }
     } catch (error) {
       console.error('Failed to delete record:', error);
     }

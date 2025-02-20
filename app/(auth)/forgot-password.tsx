@@ -132,4 +132,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
+  button: {
+    backgroundColor: '#7c3aed',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

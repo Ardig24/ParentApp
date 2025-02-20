@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { View, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
@@ -18,6 +18,17 @@ export default function NewMemoryScreen() {
   const [mediaUri, setMediaUri] = useState<string | undefined>();
   const [mood, setMood] = useState<string | undefined>();
 
+  useEffect(() => {
+    const resetForm = () => {
+      setTitle('');
+      setContent('');
+      setMediaType(null);
+      setMediaUri(undefined);
+      setMood(undefined);
+    };
+    resetForm();
+  }, []);
+
 
   const pickMedia = async (type: 'photo' | 'video') => {
     try {
@@ -29,8 +40,8 @@ export default function NewMemoryScreen() {
       }
 
       const result = await launchImageLibraryAsync({
-        mediaTypes: type === 'photo' ? MediaTypeOptions.Images : MediaTypeOptions.Videos,
-        allowsEditing: true,
+        mediaTypes: type === 'photo' ? MediaTypeOptions.images : MediaTypeOptions.videos,
+        allowsEditing: false,
         quality: 0.8,
         videoMaxDuration: 60,
       });
@@ -67,7 +78,7 @@ export default function NewMemoryScreen() {
         mood,
       });
 
-      router.back();
+      router.push('/memories');
     } catch (error) {
       console.error('Failed to save memory:', error);
       Alert.alert('Error', 'Failed to save memory. Please try again.');
@@ -84,9 +95,9 @@ export default function NewMemoryScreen() {
         </Pressable>
         <Text style={styles.title}>New Memory</Text>
         <Pressable
-          style={[styles.saveButton, !title && styles.saveButtonDisabled]}
+          style={[styles.saveButton, (!title || (mediaType && !mediaUri)) && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={!title}>
+          disabled={!title || (mediaType && !mediaUri)}>
           <Text
             style={[styles.saveText, !title && styles.saveTextDisabled]}>
             Save

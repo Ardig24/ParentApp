@@ -2,7 +2,22 @@ import { differenceInMonths } from 'date-fns';
 
 // WHO Child Growth Standards
 // Source: https://www.who.int/tools/child-growth-standards
-const WHO_STANDARDS = {
+
+interface GrowthStandards {
+  [key: number]: number[];
+}
+
+interface GenderStandards {
+  height: GrowthStandards;
+  weight: GrowthStandards;
+}
+
+interface WHOStandards {
+  male: GenderStandards;
+  female: GenderStandards;
+}
+
+const WHO_STANDARDS: WHOStandards = {
   male: {
     height: {
       // [age in months]: [3rd, 15th, 50th, 85th, 97th percentile]
@@ -64,26 +79,30 @@ export function calculateGrowthPercentile(
   type: 'height' | 'weight',
   gender: 'male' | 'female'
 ): number {
+  const standards = WHO_STANDARDS[gender]?.[type] || {};
+  const percentiles = standards[age] || [];
+  if (!percentiles.length) return 50;
+
   // Find the closest age bracket
   const ageMonths = Math.round(age);
-  const ageKeys = Object.keys(WHO_STANDARDS[gender][type]).map(Number);
+  const ageKeys = Object.keys(standards).map(Number);
   const closestAge = ageKeys.reduce((prev, curr) =>
     Math.abs(curr - ageMonths) < Math.abs(prev - ageMonths) ? curr : prev
   );
 
   // Get the percentiles for this age
-  const percentiles = WHO_STANDARDS[gender][type][closestAge];
+  const closestPercentiles = standards[closestAge];
   
   // Find where the value falls in the percentiles
-  if (value <= percentiles[0]) return 3;
-  if (value >= percentiles[4]) return 97;
+  if (value <= closestPercentiles[0]) return 3;
+  if (value >= closestPercentiles[4]) return 97;
 
-  for (let i = 0; i < percentiles.length - 1; i++) {
-    if (value >= percentiles[i] && value <= percentiles[i + 1]) {
+  for (let i = 0; i < closestPercentiles.length - 1; i++) {
+    if (value >= closestPercentiles[i] && value <= closestPercentiles[i + 1]) {
       const lowerPercentile = [3, 15, 50, 85, 97][i];
       const upperPercentile = [3, 15, 50, 85, 97][i + 1];
-      const lowerValue = percentiles[i];
-      const upperValue = percentiles[i + 1];
+      const lowerValue = closestPercentiles[i];
+      const upperValue = closestPercentiles[i + 1];
       
       // Linear interpolation
       return (

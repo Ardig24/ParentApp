@@ -40,9 +40,9 @@ export default function NewHealthRecordScreen() {
         title: title.trim(),
         notes: notes.trim(),
         data: type === 'measurement' ? {
-          height: parseFloat(height) || null,
-          weight: parseFloat(weight) || null,
-        } : null,
+          height: parseFloat(height) || 0,
+          weight: parseFloat(weight) || 0,
+        } : {},
         date: new Date().toISOString(),
       };
 

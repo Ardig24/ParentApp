@@ -39,8 +39,6 @@ export default function NewMedicationScreen() {
         notes,
         startDate: startDate.toISOString(),
         endDate: endDate?.toISOString(),
-        reminders,
-        active: true,
       });
       router.back();
     } catch (error) {

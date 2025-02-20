@@ -1,13 +1,16 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../../components/Text';
 import { Card } from '../../../components/Card';
 import { useStore } from '../../../lib/store';
-import { mockParentingTips, mockGrowthMilestones } from '../../../lib/mockData';
 import { differenceInMonths } from 'date-fns';
+import { useAIHealth } from '../../../hooks/useAIHealth';
+import { useEffect, useState } from 'react';
 
 export default function ParentingTipsScreen() {
-  const { selectedChild } = useStore();
+  const { selectedChild, healthRecords } = useStore();
+  const { generateHealthTips, isLoading, error } = useAIHealth();
+  const [aiResponse, setAiResponse] = useState<any>(null);
 
   const getAgeRange = (birthDate: string) => {
     const months = differenceInMonths(new Date(), new Date(birthDate));
@@ -17,8 +20,22 @@ export default function ParentingTipsScreen() {
   };
 
   const currentAgeRange = selectedChild ? getAgeRange(selectedChild.birthDate) : '0-6 months';
-  const tips = mockParentingTips.find(t => t.ageRange === currentAgeRange)?.tips || [];
-  const milestones = mockGrowthMilestones.find(m => m.ageRange === currentAgeRange)?.milestones || [];
+
+  useEffect(() => {
+    const fetchAITips = async () => {
+      if (selectedChild) {
+        try {
+          const childRecords = healthRecords.filter(r => r.childId === selectedChild.id);
+          const response = await generateHealthTips(selectedChild, childRecords);
+          setAiResponse(response);
+        } catch (err) {
+          console.error('Failed to fetch AI tips:', err);
+        }
+      }
+    };
+
+    fetchAITips();
+  }, [selectedChild, healthRecords]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -37,29 +54,40 @@ export default function ParentingTipsScreen() {
       {/* Daily Tips */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Today's Tips</Text>
-        {tips.map((tip, index) => (
-          <Card key={index} style={styles.tipCard}>
-            <View style={styles.tipIcon}>
-              <Ionicons name={tip.icon as any} size={24} color="#7c3aed" />
-            </View>
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>{tip.title}</Text>
-              <Text style={styles.tipText}>{tip.content}</Text>
-            </View>
+        {isLoading ? (
+          <Card style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#7c3aed" />
+            <Text style={styles.loadingText}>Generating personalized tips...</Text>
           </Card>
-        ))}
+        ) : error ? (
+          <Card style={styles.errorCard}>
+            <Text style={styles.errorText}>{error}</Text>
+          </Card>
+        ) : (
+          aiResponse?.tips.map((tip: any, index: number) => (
+            <Card key={index} style={styles.tipCard}>
+              <View style={styles.tipIcon}>
+                <Ionicons name={tip.icon as any} size={24} color="#7c3aed" />
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>{tip.title}</Text>
+                <Text style={styles.tipText}>{tip.content}</Text>
+              </View>
+            </Card>
+          ))
+        )}
       </View>
 
       {/* Growth Milestones */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Expected Milestones</Text>
         <Card style={styles.milestonesCard}>
-          {milestones.map((milestone, index) => (
+          {!isLoading && !error && aiResponse?.milestones.map((milestone: string, index: number) => (
             <View
               key={index}
               style={[
                 styles.milestone,
-                index < milestones.length - 1 && styles.milestoneBorder,
+                index < (aiResponse?.milestones.length || 0) - 1 && styles.milestoneBorder,
               ]}>
               <Ionicons name="checkmark-circle" size={20} color="#7c3aed" />
               <Text style={styles.milestoneText}>{milestone}</Text>
@@ -72,21 +100,20 @@ export default function ParentingTipsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Helpful Resources</Text>
         <Card style={styles.resourcesCard}>
-          <Pressable style={styles.resource}>
-            <Ionicons name="book" size={20} color="#7c3aed" />
-            <Text style={styles.resourceText}>Parenting Articles</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-          </Pressable>
-          <Pressable style={[styles.resource, styles.resourceBorder]}>
-            <Ionicons name="videocam" size={20} color="#7c3aed" />
-            <Text style={styles.resourceText}>Expert Videos</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-          </Pressable>
-          <Pressable style={styles.resource}>
-            <Ionicons name="people" size={20} color="#7c3aed" />
-            <Text style={styles.resourceText}>Parent Community</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-          </Pressable>
+          {!isLoading && !error && aiResponse?.resources.map((resource: any, index: number) => (
+            <Pressable 
+              key={index}
+              style={[styles.resource, index < (aiResponse?.resources.length || 0) - 1 && styles.resourceBorder]}
+              onPress={() => Linking.openURL(resource.url)}
+            >
+              <Ionicons name="book" size={20} color="#7c3aed" />
+              <View style={styles.resourceContent}>
+                <Text style={styles.resourceTitle}>{resource.title}</Text>
+                <Text style={styles.resourceDescription}>{resource.description}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </Pressable>
+          ))}
         </Card>
       </View>
     </ScrollView>
@@ -94,6 +121,36 @@ export default function ParentingTipsScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingCard: {
+    padding: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#6b7280',
+    fontSize: 16,
+  },
+  errorCard: {
+    padding: 20,
+    backgroundColor: '#fee2e2',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 16,
+  },
+  resourceContent: {
+    flex: 1,
+    gap: 4,
+  },
+  resourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  resourceDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',

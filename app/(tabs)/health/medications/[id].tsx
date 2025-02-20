@@ -22,7 +22,8 @@ export default function MedicationScreen() {
 
   const handleToggleActive = async () => {
     try {
-      await updateMedication(medication.id, {
+      await updateMedication({
+        ...medication,
         active: !medication.active,
       });
     } catch (error) {

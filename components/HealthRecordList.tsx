@@ -29,7 +29,7 @@ export function HealthRecordList({ records, category }: HealthRecordListProps) {
       {filteredRecords.map((record) => (
         <Pressable
           key={record.id}
-          onPress={() => router.push({ pathname: '/health/[id]', params: { id: record.id } })}>
+          onPress={() => router.push(`/health/${record.id}`)}>
           <Card style={styles.recordCard}>
             <View style={styles.recordHeader}>
               <Text style={styles.recordTitle}>{record.title}</Text>

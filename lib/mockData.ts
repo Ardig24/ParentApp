@@ -58,6 +58,8 @@ export const mockHealthRecords = [
     notes: 'All measurements within normal range',
     height: 75.5,
     weight: 9.2,
+    data: {},
+    createdAt: subMonths(new Date(), 1).toISOString(),
   },
   {
     id: '2',
@@ -66,6 +68,8 @@ export const mockHealthRecords = [
     date: subMonths(new Date(), 2).toISOString(),
     title: 'MMR Vaccine',
     notes: 'First dose completed',
+    data: {},
+    createdAt: subMonths(new Date(), 2).toISOString(),
   },
 ];
 
