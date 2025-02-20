@@ -2,7 +2,7 @@
 console.log('All env variables:', process.env);
 
 // Temporarily use API key directly for testing
-const API_KEY = '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';
+const API_KEY = '';
 const MODEL = process.env.EXPO_PUBLIC_AI_MODEL;
 
 console.log('API Key from env:', API_KEY ? 'Found (starts with: ' + API_KEY.substring(0, 10) + '...)' : 'Not found');
