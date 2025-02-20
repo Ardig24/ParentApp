@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
+import { differenceInMonths } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../../components/Text';
 import { Card } from '../../../components/Card';
+import { HealthRecordList } from '../../../components/HealthRecordList';
 import { useStore } from '../../../lib/store';
+import { GrowthChart } from '../../../components/GrowthChart';
+import { exportHealthData } from '../../../utils/export';
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -13,82 +17,105 @@ const CATEGORIES = [
   { id: 'vaccination', label: 'Vaccines' },
   { id: 'measurement', label: 'Growth' },
   { id: 'symptom', label: 'Symptoms' },
-];
+] as const;
+
+import type { HealthRecord } from '../../../lib/store';
 
 export default function HealthScreen() {
-  const { selectedChild, healthRecords, medications } = useStore();
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const { selectedChild, healthRecords, medications, fetchHealthRecords, isLoading, error } = useStore();
 
-  const filteredRecords = healthRecords.filter((record) => {
-    if (activeCategory === 'all') return true;
-    return record.type === activeCategory;
-  });
+  useEffect(() => {
+    if (selectedChild) {
+      fetchHealthRecords(selectedChild.id);
+    }
+  }, [selectedChild]);
+
+  const handleExport = async () => {
+    try {
+      await exportHealthData({
+        healthRecords,
+        medications,
+        childName: selectedChild?.name || '',
+        exportDate: new Date().toISOString(),
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to export health data');
+    }
+  };
+
+  if (!selectedChild) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>Please select a child first</Text>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>{error}</Text>
+      </View>
+    );
+  }
+
+  const filteredRecords = healthRecords.filter(
+    (record) => selectedCategory === 'all' || record.type === selectedCategory
+  );
+
+  const latestMeasurement = healthRecords.find(r => r.type === 'measurement') as HealthRecord | undefined;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.charts}>
+        <GrowthChart type="height" />
+        <GrowthChart type="weight" />
+      </View>
+
       <View style={styles.header}>
+        <Pressable onPress={handleExport} style={styles.exportButton}>
+          <Ionicons name="cloud-download-outline" size={24} color="#7c3aed" />
+        </Pressable>
         <Text style={styles.title}>Health</Text>
-        <Pressable style={styles.addButton}>
+        <Pressable 
+          style={styles.addButton}
+          onPress={() => router.push('/health/new')}>
           <Ionicons name="add" size={24} color="#ffffff" />
         </Pressable>
       </View>
 
-      {/* Child Summary Card */}
-      <Card style={styles.summaryCard}>
-        <View style={styles.childInfo}>
-          <Image
-            source={selectedChild?.avatarUrl}
-            style={styles.avatar}
-            contentFit="cover"
-            transition={1000}
-          />
-          <View style={styles.childDetails}>
-            <Text style={styles.childName}>{selectedChild?.name}</Text>
-            <Text style={styles.childAge}>2 years, 3 months</Text>
-          </View>
-        </View>
+      <Card>
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>75.5 cm</Text>
+            <Text style={styles.statValue}>
+              {(latestMeasurement as any)?.data?.height ?? '-- '} cm
+            </Text>
             <Text style={styles.statLabel}>Height</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>9.2 kg</Text>
+            <Text style={styles.statValue}>
+              {(latestMeasurement as any)?.data?.weight ?? '-- '} kg
+            </Text>
             <Text style={styles.statLabel}>Weight</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>50th</Text>
-            <Text style={styles.statLabel}>Percentile</Text>
+            <Text style={styles.statValue}>{healthRecords.length}</Text>
+            <Text style={styles.statLabel}>Records</Text>
           </View>
         </View>
       </Card>
 
-      {/* Active Medications */}
-      {medications.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Medications</Text>
-          {medications.map((medication) => (
-            <Card key={medication.id} style={styles.medicationCard}>
-              <View style={styles.medicationIcon}>
-                <Ionicons name="medical" size={24} color="#7c3aed" />
-              </View>
-              <View style={styles.medicationInfo}>
-                <Text style={styles.medicationName}>{medication.name}</Text>
-                <Text style={styles.medicationDetails}>
-                  {medication.dosage} • {medication.frequency}
-                </Text>
-                {medication.notes && (
-                  <Text style={styles.medicationNotes}>{medication.notes}</Text>
-                )}
-              </View>
-            </Card>
-          ))}
-        </View>
-      )}
-
-      {/* Categories Filter */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -97,14 +124,14 @@ export default function HealthScreen() {
           <Pressable
             key={category.id}
             style={[
-              styles.categoryButton,
-              activeCategory === category.id && styles.categoryButtonActive,
+              styles.category,
+              selectedCategory === category.id && styles.selectedCategory,
             ]}
-            onPress={() => setActiveCategory(category.id)}>
+            onPress={() => setSelectedCategory(category.id)}>
             <Text
               style={[
                 styles.categoryText,
-                activeCategory === category.id && styles.categoryTextActive,
+                selectedCategory === category.id && styles.selectedCategoryText,
               ]}>
               {category.label}
             </Text>
@@ -112,56 +139,8 @@ export default function HealthScreen() {
         ))}
       </ScrollView>
 
-      {/* Health Records */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Health Records</Text>
-        {filteredRecords.map((record) => (
-          <Link href={`/health/${record.id}`} key={record.id} asChild>
-            <Pressable>
-              <Card style={styles.recordCard}>
-                <View style={styles.recordHeader}>
-                  <View style={styles.recordType}>
-                    <Ionicons
-                      name={
-                        record.type === 'checkup'
-                          ? 'medical'
-                          : record.type === 'vaccination'
-                          ? 'fitness'
-                          : record.type === 'measurement'
-                          ? 'analytics'
-                          : 'warning'
-                      }
-                      size={20}
-                      color="#7c3aed"
-                    />
-                    <Text style={styles.recordTypeText}>
-                      {record.type.charAt(0).toUpperCase() + record.type.slice(1)}
-                    </Text>
-                  </View>
-                  <Text style={styles.recordDate}>Jan 15, 2024</Text>
-                </View>
-                <Text style={styles.recordTitle}>{record.title}</Text>
-                {record.notes && (
-                  <Text style={styles.recordNotes}>{record.notes}</Text>
-                )}
-                {(record.height || record.weight) && (
-                  <View style={styles.measurements}>
-                    {record.height && (
-                      <Text style={styles.measurement}>
-                        Height: {record.height} cm
-                      </Text>
-                    )}
-                    {record.weight && (
-                      <Text style={styles.measurement}>
-                        Weight: {record.weight} kg
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </Card>
-            </Pressable>
-          </Link>
-        ))}
+        <HealthRecordList records={filteredRecords} category={selectedCategory} />
       </View>
     </ScrollView>
   );
@@ -173,14 +152,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   content: {
+    paddingBottom: 24,
+  },
+  charts: {
     padding: 16,
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingTop: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   title: {
     fontSize: 24,
@@ -195,39 +178,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  summaryCard: {
-    padding: 16,
-    marginBottom: 24,
-  },
-  childInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  childDetails: {
-    marginLeft: 12,
-  },
-  childName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  childAge: {
-    fontSize: 14,
-    color: '#6b7280',
+  exportButton: {
+    padding: 8,
   },
   stats: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    justifyContent: 'space-between',
+    padding: 16,
   },
   stat: {
     flex: 1,
@@ -235,121 +193,46 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6b7280',
-    marginTop: 4,
   },
   statDivider: {
     width: 1,
-    height: 24,
+    height: 40,
     backgroundColor: '#e5e7eb',
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  medicationCard: {
-    flexDirection: 'row',
-    padding: 16,
-    marginBottom: 12,
-  },
-  medicationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f3ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  medicationInfo: {
-    flex: 1,
-  },
-  medicationName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  medicationDetails: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  medicationNotes: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-  },
   categories: {
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  categoryButton: {
+  category: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#ffffff',
     marginRight: 8,
   },
-  categoryButtonActive: {
+  selectedCategory: {
     backgroundColor: '#7c3aed',
   },
   categoryText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: '#6b7280',
   },
-  categoryTextActive: {
+  selectedCategoryText: {
     color: '#ffffff',
   },
-  recordCard: {
-    padding: 16,
-    marginBottom: 12,
+  section: {
+    paddingHorizontal: 16,
   },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recordType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recordTypeText: {
-    fontSize: 14,
-    color: '#7c3aed',
-    marginLeft: 8,
-  },
-  recordDate: {
-    fontSize: 14,
+  message: {
+    textAlign: 'center',
     color: '#6b7280',
-  },
-  recordTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  recordNotes: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
-  },
-  measurements: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  measurement: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginRight: 16,
+    marginTop: 24,
   },
 });

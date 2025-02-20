@@ -1,59 +1,95 @@
+import React from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/Text';
 import { Card } from '../../components/Card';
 import { QuickActionButton } from '../../components/QuickActionButton';
+import { ChildSelectorModal } from '../../components/settings/ChildSelectorModal';
 import { useStore } from '../../lib/store';
+import type { StoreState } from '../../lib/store';
 
 const PLACEHOLDER_AVATAR = 'https://images.unsplash.com/photo-1602030028438-4cf153cbae66?q=80&w=300&auto=format&fit=crop';
 
 export default function HomeScreen() {
-  const { selectedChild, memories, upcomingEvents } = useStore();
+  const [showChildSelector, setShowChildSelector] = React.useState(false);
+  const { user, selectedChild, children, memories, upcomingEvents, fetchChildren } = useStore() as StoreState;
+
+  React.useEffect(() => {
+    if (user) {
+      fetchChildren();
+    }
+  }, [user]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const calculateAge = (birthDate: string) => {
+    const birth = new Date(birthDate);
+    const now = new Date();
+    const years = now.getFullYear() - birth.getFullYear();
+    const months = now.getMonth() - birth.getMonth();
+    
+    if (months < 0) {
+      return `${years - 1} years, ${months + 12} months`;
+    }
+    return `${years} years, ${months} months`;
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Good morning, Sarah</Text>
+        <Text style={styles.greeting}>{getGreeting()}, {user?.user_metadata?.full_name || 'Parent'}</Text>
         <Pressable style={styles.notificationButton}>
           <Ionicons name="notifications" size={24} color="#4b5563" />
         </Pressable>
       </View>
 
-      <Card style={styles.childProfile}>
-        <Image
-          source={selectedChild?.avatarUrl || PLACEHOLDER_AVATAR}
-          style={styles.avatar}
-          contentFit="cover"
-          transition={1000}
-        />
-        <View style={styles.childInfo}>
-          <Text style={styles.childName}>{selectedChild?.name}</Text>
-          <Text style={styles.childAge}>2 years, 3 months</Text>
-        </View>
-      </Card>
+      <Pressable onPress={() => setShowChildSelector(true)}>
+        <Card style={styles.childProfile}>
+          <Image
+            source={selectedChild?.avatarUrl || PLACEHOLDER_AVATAR}
+            style={styles.avatar}
+            contentFit="cover"
+            transition={1000}
+          />
+          <View style={styles.childInfo}>
+            <Text style={styles.childName}>{selectedChild?.name || 'Select a child'}</Text>
+            {selectedChild && (
+              <Text style={styles.childAge}>{calculateAge(selectedChild.birthDate)}</Text>
+            )}
+          </View>
+          {children.length > 1 && (
+            <Ionicons name="chevron-down" size={24} color="#4b5563" style={styles.childSelector} />
+          )}
+        </Card>
+      </Pressable>
 
       <View style={styles.quickActions}>
         <QuickActionButton
           icon="camera"
           label="New Memory"
-          onPress={() => {}}
+          onPress={() => router.push('/memories/new')}
         />
         <QuickActionButton
           icon="medical"
           label="Health Log"
-          onPress={() => {}}
+          onPress={() => router.push('/health/new')}
         />
         <QuickActionButton
           icon="book"
           label="Create Story"
-          onPress={() => {}}
+          onPress={() => router.push('/stories/new')}
         />
         <QuickActionButton
           icon="time"
           label="Time Capsule"
-          onPress={() => {}}
+          onPress={() => router.push('/capsules/new')}
         />
       </View>
 
@@ -93,6 +129,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  childSelector: {
+    marginLeft: 'auto',
+    marginRight: 8,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',

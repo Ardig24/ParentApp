@@ -19,7 +19,7 @@ export default function HealthLayout() {
         options={{
           title: 'Health',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="medkit" size={size} color={color} />
+            <Ionicons name="fitness" size={size} color={color} />
           ),
         }}
       />
@@ -28,7 +28,7 @@ export default function HealthLayout() {
         options={{
           title: 'Tips',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="bulb" size={size} color={color} />
+            <Ionicons name="information-circle" size={size} color={color} />
           ),
         }}
       />

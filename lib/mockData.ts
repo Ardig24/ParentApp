@@ -78,6 +78,8 @@ export const mockMedications = [
     frequency: 'Daily',
     startDate: subMonths(new Date(), 3).toISOString(),
     notes: 'Give with morning feeding',
+    active: true,
+    reminders: true
   },
 ];
 

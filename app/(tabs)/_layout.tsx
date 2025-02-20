@@ -39,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -48,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Memories',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="heart" size={size} color={color} />
+            <Ionicons name="heart-outline" size={size} color={color} />
           ),
         }}
       />
@@ -57,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Health',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="medkit" size={size} color={color} />
+            <Ionicons name="fitness-outline" size={size} color={color} />
           ),
         }}
       />
@@ -67,7 +67,7 @@ export default function TabLayout() {
         options={{
           title: 'Stories',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="book" size={size} color={color} />
+            <Ionicons name="book-outline" size={size} color={color} />
           ),
         }}
       />
@@ -76,7 +76,7 @@ export default function TabLayout() {
         options={{
           title: 'Time Capsule',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="time" size={size} color={color} />
+            <Ionicons name="timer-outline" size={size} color={color} />
           ),
         }}
       />
@@ -85,7 +85,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,12 +7,18 @@ import { MemoryCard } from '../../../components/MemoryCard';
 import { useStore } from '../../../lib/store';
 
 export default function MemoriesScreen() {
-  const { memories, isLoading, error } = useStore();
-  const [filter, setFilter] = useState('all');
+  const { memories, isLoading, error, selectedChild, fetchMemories } = useStore();
+
+  useEffect(() => {
+    if (selectedChild) {
+      fetchMemories(selectedChild.id);
+    }
+  }, [selectedChild]);
+  const [filter, setFilter] = useState<'all' | 'photo' | 'video' | 'text' | 'voice'>('all');
 
   const filteredMemories = memories.filter((memory) => {
     if (filter === 'all') return true;
-    return memory.type === filter;
+    return memory.type === filter as 'photo' | 'video' | 'text' | 'voice';
   });
 
   return (
@@ -103,7 +109,7 @@ export default function MemoriesScreen() {
             <MemoryCard
               key={memory.id}
               id={memory.id}
-              type={memory.type}
+              type={memory.type as 'text' | 'photo' | 'video' | 'voice'}
               title={memory.title}
               content={memory.content}
               mediaUrl={memory.mediaUrl}

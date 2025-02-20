@@ -33,7 +33,7 @@ export interface HealthRecord {
   temperature?: number;
 }
 
-interface Medication {
+export interface Medication {
   id: string;
   childId: string;
   name: string;
@@ -42,6 +42,8 @@ interface Medication {
   startDate: string;
   endDate?: string;
   notes?: string;
+  active: boolean;
+  reminders: boolean;
 }
 
 interface Story {
@@ -119,6 +121,8 @@ export const useStore = create<AppState>((set, get) => ({
   timeCapsules: mockTimeCapsules,
   upcomingEvents: mockUpcomingEvents,
   isLoading: false,
+  active: true,
+  reminders: true,
   error: null,
 
   setUser: (user) => set({ user }),

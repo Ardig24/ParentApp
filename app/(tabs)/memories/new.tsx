@@ -1,52 +1,68 @@
 import { useState } from 'react';
+import { Alert } from 'react-native';
 import { View, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync, MediaTypeOptions, requestMediaLibraryPermissionsAsync } from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Text } from '../../../components/Text';
 import { useStore } from '../../../lib/store';
 
-const MOODS = [
-  'Happy',
-  'Excited',
-  'Proud',
-  'Silly',
-  'Tired',
-  'Sick',
-  'Cranky',
-];
+const MOODS = ['Happy', 'Excited', 'Proud', 'Silly', 'Tired', 'Sad'];
 
 export default function NewMemoryScreen() {
   const { selectedChild, addMemory } = useStore();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'photo' | 'video' | null>(null);
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
+  const [mediaUri, setMediaUri] = useState<string | undefined>();
+  const [mood, setMood] = useState<string | undefined>();
+
 
   const pickMedia = async (type: 'photo' | 'video') => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: type === 'photo' ? ImagePicker.MediaTypeOptions.Images : ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    try {
+      // Request media library permissions
+      const { status } = await requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant permission to access your media library.');
+        return;
+      }
 
-    if (!result.canceled) {
-      setMediaType(type);
-      setMediaUri(result.assets[0].uri);
+      const result = await launchImageLibraryAsync({
+        mediaTypes: type === 'photo' ? MediaTypeOptions.Images : MediaTypeOptions.Videos,
+        allowsEditing: true,
+        quality: 0.8,
+        videoMaxDuration: 60,
+      });
+
+      if (!result.canceled) {
+        setMediaType(type);
+        setMediaUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking media:', error);
+      Alert.alert('Error', 'Failed to select media. Please try again.');
     }
   };
 
   const handleSave = async () => {
-    if (!selectedChild) return;
+    if (!selectedChild) {
+      Alert.alert('Error', 'Please select a child first');
+      return;
+    }
+
+    if (!title.trim()) {
+      Alert.alert('Error', 'Please enter a title');
+      return;
+    }
 
     try {
+
       await addMemory({
         childId: selectedChild.id,
         type: mediaType || 'text',
-        title,
-        content,
+        title: title.trim(),
+        content: content.trim(),
         mediaUrl: mediaUri,
         mood,
       });
@@ -54,6 +70,9 @@ export default function NewMemoryScreen() {
       router.back();
     } catch (error) {
       console.error('Failed to save memory:', error);
+      Alert.alert('Error', 'Failed to save memory. Please try again.');
+    } finally {
+
     }
   };
 
